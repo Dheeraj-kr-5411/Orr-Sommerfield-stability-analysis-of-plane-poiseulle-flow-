@@ -96,3 +96,4 @@ if neutral_points:
     plt.title('Neutral Stability Curve (Plane Poiseuille Flow)')
     plt.grid(True)
     plt.show()
+
