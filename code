@@ -1,0 +1,98 @@
+
+# Orr–Sommerfeld Stability Analysis
+# Plane Poiseuille Flow (U = 1 - y^2)
+# Computes neutral stability curve (α vs Re)
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import eig
+
+# Helper: Chebyshev differentiation matrix ---
+def cheb(N):
+   
+    if N == 0:
+        D = 0; y = 1
+        return D, y
+    y = np.cos(np.pi * np.arange(N + 1) / N)
+    c = np.ones(N + 1)
+    c[0] = 2; c[-1] = 2
+    c = c * ((-1) ** np.arange(N + 1))
+    X = np.tile(y, (N + 1, 1))
+    dX = X - X.T
+    D = (c[:, None] / c[None, :]) / (dX + np.eye(N + 1))
+    D = D - np.diag(np.sum(D, axis=1))
+    return D, y
+
+
+N = 80                     # Chebyshev collocation points
+alpha_values = np.linspace(0.5, 2.0, 10)  # range of wavenumbers
+Re_values = np.linspace(2000, 10000, 20)  # range of Reynolds numbers
+
+# --- Chebyshev grid and matrices --
+D, y = cheb(N)
+D2 = np.dot(D, D)
+I = np.eye(N + 1)
+
+# --- Remove boundary points for no-slip (phi=phi'=0) ---
+def apply_bc(A):
+    A = A[1:-1, 1:-1]
+    return A
+
+y_interior = y[1:-1]
+D_in = D[1:-1, 1:-1]
+D2_in = D2[1:-1, 1:-1]
+I_in = I[1:-1, 1:-1]
+
+# --- Base flow and its derivatives ---
+U = 1 - y_interior**2
+U_dd = -2 * np.ones_like(y_interior)
+
+# --- Allocate arrays to store growth rates ---
+growth = np.zeros((len(alpha_values), len(Re_values)))
+
+# --- Main loop over alpha and Re ---
+for i, alpha in enumerate(alpha_values):
+    A2 = D2_in - alpha**2 * I_in
+    A4 = np.dot(A2, A2)
+    for j, Re in enumerate(Re_values):
+        # Build operators
+        U_diag = np.diag(U)
+        Udd_diag = np.diag(U_dd)
+        LHS = (U_diag @ A2 - Udd_diag) - (1j / (alpha * Re)) * A4
+        RHS = A2
+
+        # Solve generalized eigenvalue problem LHS * phi = c * RHS * phi
+        eigvals, eigvecs = eig(LHS, RHS)
+
+        # Extract imaginary part of c (growth rate)
+        ci = eigvals.imag
+        growth[i, j] = np.max(ci)  # most unstable mode
+
+# --- Plot neutral stability curve ---
+plt.figure(figsize=(8,6))
+for i, alpha in enumerate(alpha_values):
+    plt.plot(Re_values, growth[i,:], label=f'α={alpha:.2f}')
+plt.axhline(0, color='k', linestyle='--')
+plt.xlabel('Reynolds number (Re)')
+plt.ylabel('Max growth rate (Im(c))')
+plt.title('Growth Rate vs Re for different α (Plane Poiseuille Flow)')
+plt.legend()
+plt.grid(True)
+plt.show()
+neutral_points = []
+for i, alpha in enumerate(alpha_values):
+    ci_values = growth[i,:]
+    for k in range(len(ci_values)-1):
+        if ci_values[k] < 0 and ci_values[k+1] > 0:
+            Re_neutral = 0.5*(Re_values[k] + Re_values[k+1])
+            neutral_points.append((alpha, Re_neutral))
+
+if neutral_points:
+    neutral_points = np.array(neutral_points)
+    plt.figure(figsize=(8,6))
+    plt.plot(neutral_points[:,0], neutral_points[:,1], 'r-o')
+    plt.xlabel('Wavenumber α')
+    plt.ylabel('Neutral Reynolds number Re')
+    plt.title('Neutral Stability Curve (Plane Poiseuille Flow)')
+    plt.grid(True)
+    plt.show()
