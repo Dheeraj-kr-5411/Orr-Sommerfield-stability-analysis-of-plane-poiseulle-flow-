@@ -42,3 +42,5 @@ Solution: Solve generalized eigenvalue problem using scipy.linalg.eig.
 6. Extract the *maximum imaginary part* of \(c\) → determines growth/decay.
 7. Plot growth rate vs Re* and *neutral stability curve (α–Re plane)
 
+
+
