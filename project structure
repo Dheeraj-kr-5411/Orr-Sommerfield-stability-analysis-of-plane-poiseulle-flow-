@@ -1,0 +1,8 @@
+CFD_Poiseuille_Stability/
+│
+├── orr_sommerfeld_neutral.py 
+├── plots/
+│   ├── growth_rate.png
+│   └── neutral_curve.png
+├── README.md                 
+└── requirements.txt
